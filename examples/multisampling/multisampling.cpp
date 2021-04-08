@@ -376,6 +376,21 @@ public:
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 		dependencies[1].viewOffset = 0;
 
+		VkAttachmentReference2 colorReference = {
+			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
+				0,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+		};
+
+		// Resolve attachment reference for the color attachment
+		VkAttachmentReference2 resolveReference = { 
+			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
+				1,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+		};
+
 		VkSubpassDescription2 vkSubpassDescription2 = {
 			VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2,
 			&vkSubpassDescriptionDepthStencilResolve,
@@ -384,13 +399,14 @@ public:
 			0,
 			0,
 			nullptr,
-			0,
-			nullptr,
-			nullptr,
+			1,
+			&colorReference,
+			&resolveReference,
 			vkAttachmentReferences,
 			0,
 			nullptr
 		};
+
 		const VkRenderPassCreateInfo2 vkRenderPassCreateInfo2 = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2,
 			nullptr,
