@@ -376,7 +376,7 @@ public:
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 		dependencies[1].viewOffset = 0;
 
-		VkAttachmentReference2 colorReference = {
+		const VkAttachmentReference2 colorReference = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
 				0,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -384,7 +384,7 @@ public:
 		};
 
 		// Resolve attachment reference for the color attachment
-		VkAttachmentReference2 resolveReference = { 
+		const VkAttachmentReference2 resolveReference = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
 				1,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
