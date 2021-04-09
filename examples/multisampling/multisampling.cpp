@@ -4,6 +4,9 @@
 * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
 *
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+
+* This Vulkan Example has some additional modification, shows how to use VK_KHR_depth_stencil_resolve extension
+* Autor Geets Andrey, email: geecandrey@gmail.com
 */
 
 #include <stdio.h>
@@ -315,7 +318,7 @@ public:
 				VK_ATTACHMENT_LOAD_OP_CLEAR,
 				VK_ATTACHMENT_STORE_OP_DONT_CARE,
 				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 			},
 			{
 				VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2,
@@ -323,7 +326,7 @@ public:
 				0,
 				depthFormat,
 				VK_SAMPLE_COUNT_1_BIT,
-				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				VK_ATTACHMENT_LOAD_OP_CLEAR,
 				VK_ATTACHMENT_STORE_OP_STORE,
 				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 				VK_ATTACHMENT_STORE_OP_STORE,
@@ -352,16 +355,16 @@ public:
 			VK_RESOLVE_MODE_SAMPLE_ZERO_BIT,
 			&vkAttachmentReferences[1]
 		};
-
+		constexpr VkAccessFlags DepthMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		std::array<VkSubpassDependency2, 2> dependencies;
 		dependencies[0].sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
 		dependencies[0].pNext = nullptr;
 		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependencies[0].dstSubpass = 0;
 		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 		dependencies[0].viewOffset = 0;
 
@@ -369,14 +372,14 @@ public:
 		dependencies[1].pNext = nullptr;
 		dependencies[1].srcSubpass = 0;
 		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 		dependencies[1].viewOffset = 0;
 
-		VkAttachmentReference2 colorReference = {
+		const VkAttachmentReference2 colorReference = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
 				0,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -384,7 +387,7 @@ public:
 		};
 
 		// Resolve attachment reference for the color attachment
-		VkAttachmentReference2 resolveReference = { 
+		const VkAttachmentReference2 resolveReference = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2, nullptr,
 				1,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -519,17 +522,18 @@ public:
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
-		VkClearValue clearValues[3];
+		VkClearValue clearValues[4];
 		// Clear to a white background for higher contrast
 		clearValues[0].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 		clearValues[1].color = { { 1.0f, 1.0f, 1.0f, 1.0f } };
 		clearValues[2].depthStencil = { 1.0f, 0 };
+		clearValues[3].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
 		renderPassBeginInfo.renderPass = renderPass;
 		renderPassBeginInfo.renderArea.extent.width = width;
 		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 3;
+		renderPassBeginInfo.clearValueCount = 4;
 		renderPassBeginInfo.pClearValues = clearValues;
 
 		for (size_t i = 0; i < drawCmdBuffers.size(); ++i)
