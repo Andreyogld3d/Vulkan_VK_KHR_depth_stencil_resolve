@@ -1,6 +1,7 @@
 # Vulkan VK_KHR_depth_stencil_resolve example
 
-This example are based on https://github.com/SaschaWillems/Vulkan/tree/master/examples/multisampling, shows how to resolve DepthStencil Buffer in the same RenderPass,  
+This example are based on https://github.com/SaschaWillems/Vulkan/tree/master/examples/multisampling, 
+shows how to resolve DepthStencil Buffer in the same RenderPass,  using [VK_KHR_create_renderpass2](https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_create_renderpass2.html) extension.
 
 ![image](https://user-images.githubusercontent.com/8597425/113912953-68b59380-97e4-11eb-939f-96c0226361f6.png)
 
