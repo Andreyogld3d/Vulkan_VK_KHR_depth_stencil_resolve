@@ -17,7 +17,7 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	// Validation can also be forced via a define
 #if defined(_VALIDATION)
 	this->settings.validation = true;
-#endif	
+#endif
 
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -34,6 +34,8 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #elif defined(_DIRECT2DISPLAY)
 	instanceExtensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
+	instanceExtensions.push_back(VK_EXT_DIRECTFB_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
 	instanceExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -42,10 +44,35 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	instanceExtensions.push_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
 	instanceExtensions.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
+	instanceExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
 #endif
 
-	if (enabledInstanceExtensions.size() > 0) {
-		for (auto enabledExtension : enabledInstanceExtensions) {
+	// Get extensions supported by the instance and store for later use
+	uint32_t extCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
+	if (extCount > 0)
+	{
+		std::vector<VkExtensionProperties> extensions(extCount);
+		if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+		{
+			for (VkExtensionProperties extension : extensions)
+			{
+				supportedInstanceExtensions.push_back(extension.extensionName);
+			}
+		}
+	}
+
+	// Enabled requested instance extensions
+	if (enabledInstanceExtensions.size() > 0)
+	{
+		for (const char* enabledExtension : enabledInstanceExtensions)
+		{
+			// Output message if requested extension is not available
+			if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())
+			{
+				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
+			}
 			instanceExtensions.push_back(enabledExtension);
 		}
 	}
@@ -58,15 +85,36 @@ VkResult VulkanExampleBase::createInstance(bool enableValidation)
 	{
 		if (settings.validation)
 		{
-			instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+			instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
+
+	// The VK_LAYER_KHRONOS_validation contains all current validation functionality.
+	// Note that on Android this layer requires at least NDK r20
+	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (settings.validation)
 	{
-		instanceCreateInfo.enabledLayerCount = vks::debug::validationLayerCount;
-		instanceCreateInfo.ppEnabledLayerNames = vks::debug::validationLayerNames;
+		// Check if this layer is available at instance level
+		uint32_t instanceLayerCount;
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
+		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+		bool validationLayerPresent = false;
+		for (VkLayerProperties layer : instanceLayerProperties) {
+			if (strcmp(layer.layerName, validationLayerName) == 0) {
+				validationLayerPresent = true;
+				break;
+			}
+		}
+		if (validationLayerPresent) {
+			instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
+			instanceCreateInfo.enabledLayerCount = 1;
+		}
+		else {
+			std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
+		}
 	}
 	return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 }
@@ -931,6 +979,7 @@ bool VulkanExampleBase::initVulkan()
 		return false;
 	}
 	device = vulkanDevice->logicalDevice;
+	vks::debugmarker::setup(device);
 
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);

@@ -75,6 +75,7 @@ protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp;
 	// Vulkan instance, stores all per-application states
 	VkInstance instance;
+	std::vector<std::string> supportedInstanceExtensions;
 	// Physical device (GPU) that Vulkan will ise
 	VkPhysicalDevice physicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
@@ -107,10 +108,13 @@ protected:
 	VkSubmitInfo submitInfo;
 	// Command buffers used for rendering
 	std::vector<VkCommandBuffer> drawCmdBuffers;
+	// Depth render pass for frame buffer writes
+	VkRenderPass depthRenderPass;
 	// Global render pass for frame buffer writes
 	VkRenderPass renderPass;
 	// List of available frame buffers (same as number of swap chain images)
 	std::vector<VkFramebuffer>frameBuffers;
+	VkFramebuffer depthFrameBuffer;
 	// Active frame buffer index
 	uint32_t currentBuffer = 0;
 	// Descriptor set pool
@@ -185,7 +189,7 @@ public:
 
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
-	uint32_t apiVersion = VK_API_VERSION_1_0;
+	uint32_t apiVersion = VK_API_VERSION_1_2;
 
 	struct 
 	{
